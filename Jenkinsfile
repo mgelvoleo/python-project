@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_VM = "192.168.60.7"
+        DOCKER_VM  = "192.168.60.7"
         IMAGE_NAME = "python-webapp"
         IMAGE_TAG  = "1.0.${BUILD_NUMBER}"
     }
@@ -16,6 +16,28 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Lint (flake8)') {
+            steps {
+                sh '''
+                python3 -m venv venv
+                source venv/bin/activate
+                pip install --upgrade pip
+                pip install flake8
+                flake8 app.py
+                '''
+            }
+        }
+
+        stage('Test (pytest)') {
+            steps {
+                sh '''
+                source venv/bin/activate
+                pip install pytest
+                pytest tests/
+                '''
             }
         }
 
@@ -43,6 +65,15 @@ pipeline {
                 "
                 '''
             }
+        }
+    }
+
+    post {
+        failure {
+            echo "❌ CI failed. Deployment skipped."
+        }
+        success {
+            echo "✅ CI/CD pipeline completed successfully."
         }
     }
 }
