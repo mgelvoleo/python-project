@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -13,7 +12,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
@@ -59,14 +57,14 @@ pipeline {
                 '''
             }
         }
-
-        post {
-            failure {
-                echo "❌ CI failed. Deployment skipped."
-            }
-            success {
-                echo "✅ CI/CD pipeline completed successfully."
-            }
     }
+    
+    post {
+        failure {
+            echo "❌ CI failed. Deployment skipped."
+        }
+        success {
+            echo "✅ CI/CD pipeline completed successfully."
+        }
     }
 }
