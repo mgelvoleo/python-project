@@ -15,6 +15,6 @@ spec:
     spec:
       containers:
       - name: python-app
-        image: mgelvoleo/python-webapp:1.0.{{BUILD_NUMBER}}
+        image: mgelvoleo/python-webapp:latest
         ports:
         - containerPort: 8000
