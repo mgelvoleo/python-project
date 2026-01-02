@@ -94,7 +94,7 @@ pipeline {
 
                     curl -s -H "Authorization: JWT $TOKEN" \
                       "https://hub.docker.com/v2/repositories/${IMAGE_NAME}/tags/?page_size=100" | \
-                    jq -r ".results | map(select(.name | test(\"^1\\.0\\.\"))) | sort_by(.last_updated) | reverse | .[${KEEP_IMAGES}:] | .[].name" | \
+                    jq -r '.results | map(select(.name | test("^1\\.0\\."))) | sort_by(.last_updated) | reverse | .[5:] | .[].name' | \
                     while read TAG; do
                         echo "Deleting remote tag: $TAG"
                         curl -s -X DELETE \
