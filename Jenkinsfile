@@ -6,13 +6,14 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = "mgelvoleo/python-webapp"
-        IMAGE_TAG  = "1.0.${BUILD_NUMBER}"
-        K8S_NS     = "dev"
-        KEEP_IMAGES = "5"
+        IMAGE_NAME   = "mgelvoleo/python-webapp"
+        IMAGE_TAG    = "1.0.${BUILD_NUMBER}"
+        K8S_NS       = "dev"
+        KEEP_IMAGES  = "5"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -22,10 +23,10 @@ pipeline {
         stage('Lint') {
             steps {
                 sh '''
-                python3 -m venv venv
-                source venv/bin/activate
-                pip install flake8
-                flake8 app.py
+                    python3 -m venv venv
+                    source venv/bin/activate
+                    pip install flake8
+                    flake8 app.py
                 '''
             }
         }
@@ -33,9 +34,9 @@ pipeline {
         stage('Test') {
             steps {
                 sh '''
-                source venv/bin/activate
-                pip install pytest
-                pytest tests/
+                    source venv/bin/activate
+                    pip install pytest
+                    pytest tests/
                 '''
             }
         }
@@ -48,32 +49,31 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     '''
                 }
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build & Push Docker Image') {
             steps {
                 sh '''
-                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
 
-
         stage('Cleanup Local Docker Images') {
             steps {
                 sh '''
-                echo "🧹 Cleaning up local Docker images (keeping latest ${KEEP_IMAGES})"
+                    echo "🧹 Cleaning up local Docker images (keeping latest ${KEEP_IMAGES})"
 
-                docker images ${IMAGE_NAME} --format "{{.Repository}}:{{.Tag}} {{.CreatedAt}}" | \
-                sort -rk2 | \
-                tail -n +$((${KEEP_IMAGES}+1)) | \
-                awk '{print $1}' | \
-                xargs -r docker rmi -f || true
+                    docker images ${IMAGE_NAME} --format "{{.Repository}}:{{.Tag}} {{.CreatedAt}}" | \
+                    sort -rk2 | \
+                    tail -n +$((${KEEP_IMAGES}+1)) | \
+                    awk '{print $1}' | \
+                    xargs -r docker rmi -f || true
                 '''
             }
         }
@@ -86,56 +86,56 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                    echo "🧹 Cleaning up Docker Hub images (keep latest ${KEEP_IMAGES} builds + latest tag)"
+                        echo "🧹 Cleaning up Docker Hub images (keep latest ${KEEP_IMAGES} builds + latest tag)"
 
-                    # Get Docker Hub JWT token
-                    TOKEN=$(curl -s -X POST https://hub.docker.com/v2/users/login/ \
-                    -H "Content-Type: application/json" \
-                    -d '{"username": "'$DOCKER_USER'", "password": "'$DOCKER_PASS'"}' | jq -r .token)
+                        # Get Docker Hub JWT token
+                        TOKEN=$(curl -s -X POST https://hub.docker.com/v2/users/login/ \
+                            -H "Content-Type: application/json" \
+                            -d '{"username": "'$DOCKER_USER'", "password": "'$DOCKER_PASS'"}' | jq -r .token)
 
-                    # Fetch all tags from Docker Hub
-                    curl -s -H "Authorization: JWT $TOKEN" \
-                    "https://hub.docker.com/v2/repositories/${IMAGE_NAME}/tags/?page_size=100" | \
-                    jq -r '
-                    # Filter numeric tags starting with 1.0.
-                    .results 
-                    | map(select(.name | test("^1\\.0\\."))) 
-                    | sort_by(.last_updated) 
-                    | reverse 
-                    | .['${KEEP_IMAGES}':] 
-                    | .[].name
-                    ' | while read TAG; do
-                        echo "Deleting old tag: $TAG"
-                        curl -s -X DELETE \
-                        -H "Authorization: JWT $TOKEN" \
-                        "https://hub.docker.com/v2/repositories/${IMAGE_NAME}/tags/$TAG/"
-                    done
+                        # Fetch all tags from Docker Hub
+                        curl -s -H "Authorization: JWT $TOKEN" \
+                            "https://hub.docker.com/v2/repositories/${IMAGE_NAME}/tags/?page_size=100" | \
+                            jq -r '
+                                # Filter numeric tags starting with 1.0.
+                                .results 
+                                | map(select(.name | test("^1\\.0\\."))) 
+                                | sort_by(.last_updated) 
+                                | reverse 
+                                | .['${KEEP_IMAGES}':] 
+                                | .[].name
+                            ' | while read TAG; do
+                                echo "Deleting old tag: $TAG"
+                                curl -s -X DELETE \
+                                    -H "Authorization: JWT $TOKEN" \
+                                    "https://hub.docker.com/v2/repositories/${IMAGE_NAME}/tags/$TAG/"
+                            done
                     '''
                 }
             }
         }
 
-        
-        stage('Deploy to Kubernetes Clusters') {
+        stage('Deploy to Kubernetes Cluster') {
             steps {
                 sh '''
                     kubectl apply -f k8s/namespace.yaml
                     kubectl apply -f k8s/deployment.yaml -n ${K8S_NS}
                     kubectl set image deployment/python-app \
-                    python-app=${IMAGE_NAME}:${IMAGE_TAG} \
-                    -n ${K8S_NS}
+                        python-app=${IMAGE_NAME}:${IMAGE_TAG} \
+                        -n ${K8S_NS}
                     kubectl apply -f k8s/service.yaml -n ${K8S_NS}
                     kubectl rollout status deployment/python-app -n ${K8S_NS}
                 '''
             }
         }
     }
-    
+
     post {
         failure {
             echo "❌ CI failed. Deployment skipped."
         }
         success {
+            sh 'docker logout || true'
             echo "✅ CI/CD pipeline completed successfully."
         }
     }
