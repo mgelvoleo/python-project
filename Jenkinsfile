@@ -48,7 +48,7 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes Cluster') {
+        stage('Deploy to Kubernetes') {
             steps {
                 sh '''
                 sed "s|IMAGE_NAME|${IMAGE_NAME}:${IMAGE_TAG}|g" k8s/deployment.yaml | kubectl apply -f -
