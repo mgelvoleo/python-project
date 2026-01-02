@@ -65,11 +65,12 @@ pipeline {
         stage('Deploy to Kubernetes Clusters') {
             steps {
                 sh '''
-                kubectl apply -f k8s/namespace.yaml
-                kubectl apply -f k8s/deployment.yaml
-                kubectl set image deployment/python-app  
-                python-app=${IMAGE_NAME}:${IMAGE_TAG} -n ${K8S_NS}
-                kubectl apply -f k8s/service.yaml
+                    kubectl apply -f k8s/namespace.yaml
+                    kubectl apply -f k8s/deployment.yaml -n ${K8S_NS}
+                    kubectl set image deployment/python-app \
+                    python-app=${IMAGE_NAME}:${IMAGE_TAG} \
+                    -n ${K8S_NS}
+                    kubectl apply -f k8s/service.yaml -n ${K8S_NS}
                 '''
             }
         }
