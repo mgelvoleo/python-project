@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -6,9 +7,9 @@ pipeline {
     }
 
     environment {
-        DOCKER_VM  = "192.168.60.7"
-        IMAGE_NAME = "python-webapp"
+        IMAGE_NAME = "mgelvoleo/python-webapp"
         IMAGE_TAG  = "1.0.${BUILD_NUMBER}"
+        K8S_NS     = "dev"
     }
 
     stages {
@@ -19,19 +20,18 @@ pipeline {
             }
         }
 
-        stage('Lint (flake8)') {
+        stage('Lint') {
             steps {
                 sh '''
                 python3 -m venv venv
                 source venv/bin/activate
-                pip install --upgrade pip
                 pip install flake8
                 flake8 app.py
                 '''
             }
         }
 
-        stage('Test (pytest)') {
+        stage('Test') {
             steps {
                 sh '''
                 source venv/bin/activate
@@ -44,36 +44,29 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                ssh dockeruser@${DOCKER_VM} "
-                  cd /tmp &&
-                  rm -rf python-webapp &&
-                  git clone https://github.com/mgelvoleo/python-project.git python-webapp &&
-                  cd python-webapp &&
-                  docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                "
+                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                docker push ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
 
-        stage('Deploy Container') {
+        stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                ssh dockeruser@${DOCKER_VM} "
-                  docker stop web || true &&
-                  docker rm web || true &&
-                  docker run -d --name web -p 8000:8000 ${IMAGE_NAME}:${IMAGE_TAG}
-                "
+                sed "s|IMAGE_NAME|${IMAGE_NAME}:${IMAGE_TAG}|g" k8s/deployment.yaml | kubectl apply -f -
+                kubectl apply -f k8s/namespace.yaml
+                kubectl apply -f k8s/service.yaml
                 '''
             }
         }
-    }
 
-    post {
-        failure {
-            echo "❌ CI failed. Deployment skipped."
-        }
-        success {
-            echo "✅ CI/CD pipeline completed successfully."
-        }
+        post {
+            failure {
+                echo "❌ CI failed. Deployment skipped."
+            }
+            success {
+                echo "✅ CI/CD pipeline completed successfully."
+            }
+    }
     }
 }
