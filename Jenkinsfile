@@ -8,7 +8,6 @@ pipeline {
     environment {
         IMAGE_NAME   = "mgelvoleo/python-webapp"
         IMAGE_TAG    = "1.0.${BUILD_NUMBER}"
-        K8S_NS       = "dev"
         KEEP_IMAGES  = "5"
     }
 
@@ -110,6 +109,11 @@ pipeline {
         CD: DEV ENVIRONMENT
         =============== */
         stage('Deploy to Dev environment') {
+            
+            environment {
+                K8S_NS = "dev"
+            }
+
             steps {
                 sh '''
                     kubectl apply -f k8s/dev/namespace.yaml
@@ -122,6 +126,91 @@ pipeline {
                 '''
             }
         }
+
+
+        /* =======================
+           CD: TEST
+        ======================= */
+
+        stage('Deploy to TEST') {
+            when {
+                branch 'main'
+            }
+            environment {
+                K8S_NS = "test"
+            }
+            steps {
+                sh '''
+                    echo "🚀 Deploying to TEST"
+
+                    kubectl apply -f k8s/test/namespace.yaml
+                    kubectl apply -f k8s/test/deployment.yaml -n ${K8S_NS}
+
+                    kubectl set image deployment/python-app \
+                        python-app=${IMAGE_NAME}:${IMAGE_TAG} \
+                        -n ${K8S_NS}
+
+                    kubectl apply -f k8s/test/service.yaml -n ${K8S_NS}
+                    kubectl rollout status deployment/python-app -n ${K8S_NS}
+                '''
+            }
+        }
+
+        stage('Smoke Test (TEST)') {
+            when {
+                branch 'main'
+            }
+            steps {
+                sh '''
+                    echo "🔍 Running smoke test on TEST"
+                    kubectl get pods -n test
+                '''
+            }
+        }
+
+        /* =======================
+           CD: PROD
+        ======================= */
+
+        stage('Approval for PROD') {
+            when {
+                branch 'release'
+            }
+            steps {
+                input message: "Deploy to PROD?", ok: "Deploy"
+            }
+        }
+
+
+        stage('Deploy to PROD') {
+            
+            when {
+                branch 'release'
+            }
+           
+            environment {
+                K8S_NS = "prod"
+            }
+
+            steps {
+                sh '''
+                    echo "🚀 Deploying to PROD"
+
+                    kubectl apply -f k8s/prod/namespace.yaml
+                    kubectl apply -f k8s/prod/deployment.yaml -n ${K8S_NS}
+
+                    kubectl set image deployment/python-app \
+                        python-app=${IMAGE_NAME}:${IMAGE_TAG} \
+                        -n ${K8S_NS}
+
+                    kubectl apply -f k8s/prod/service.yaml -n ${K8S_NS}
+                    kubectl rollout status deployment/python-app -n ${K8S_NS}
+                '''
+            }
+
+        }
+
+        
     }
 
     post {
