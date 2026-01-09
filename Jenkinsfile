@@ -106,15 +106,18 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes Cluster') {
+        /* ============
+        CD: DEV ENVIRONMENT
+        =============== */
+        stage('Deploy to Dev environment') {
             steps {
                 sh '''
-                    kubectl apply -f k8s/namespace.yaml
-                    kubectl apply -f k8s/deployment.yaml -n ${K8S_NS}
+                    kubectl apply -f k8s/dev/namespace.yaml
+                    kubectl apply -f k8s/dev/deployment.yaml -n ${K8S_NS}
                     kubectl set image deployment/python-app \
                         python-app=${IMAGE_NAME}:${IMAGE_TAG} \
                         -n ${K8S_NS}
-                    kubectl apply -f k8s/service.yaml -n ${K8S_NS}
+                    kubectl apply -f k8s/dev/service.yaml -n ${K8S_NS}
                     kubectl rollout status deployment/python-app -n ${K8S_NS}
                 '''
             }
