@@ -172,10 +172,43 @@ pipeline {
            CD: PROD
         ======================= */
 
-        
+        stage('Approval for PROD') {
+            when {
+                branch 'release'
+            }
+            steps {
+                input message: "Deploy to PROD?", ok: "Deploy"
+            }
+        }
 
 
-        
+        stage('Deploy to PROD') {
+            
+            when {
+                branch 'release'
+            }
+           
+            environment {
+                K8S_NS = "prod"
+            }
+
+            steps {
+                sh '''
+                    echo "🚀 Deploying to PROD"
+
+                    kubectl apply -f k8s/prod/namespace.yaml
+                    kubectl apply -f k8s/prod/deployment.yaml -n ${K8S_NS}
+
+                    kubectl set image deployment/python-app \
+                        python-app=${IMAGE_NAME}:${IMAGE_TAG} \
+                        -n ${K8S_NS}
+
+                    kubectl apply -f k8s/prod/service.yaml -n ${K8S_NS}
+                    kubectl rollout status deployment/python-app -n ${K8S_NS}
+                '''
+            }
+
+        }
 
         
     }
