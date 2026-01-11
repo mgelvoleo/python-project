@@ -3,8 +3,8 @@ kind: Deployment
 metadata:
   name: python-app
   namespace: prod
-  replicas: 3
 spec:
+  replicas: 3
   selector:
     matchLabels:
       app: python-app
