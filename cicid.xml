@@ -1,0 +1,56 @@
+<mxfile host="app.diagrams.net" modified="2024-05-20T12:00:00.000Z" agent="5.0" etag="pipeline-diag" version="21.0.0" type="device">
+  <diagram id="pipeline-diagram" name="CI-CD Pipeline">
+    <mxGraphModel dx="1422" dy="798" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" background="#1A1A1A" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <mxCell id="github" value="&lt;b&gt;GitHub&lt;/b&gt;&lt;br&gt;Source Control" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#24292e;strokeColor=#ffffff;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="120" y="80" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="webhook" value="Webhook" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontColor=#ffffff;strokeColor=#ffffff;" edge="1" parent="1" source="github" target="jenkins">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="120" />
+              <mxPoint x="320" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="jenkins" value="&lt;b&gt;Jenkins&lt;/b&gt;&lt;br&gt;Multibranch Pipeline&lt;br&gt;(192.168.60.5)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#D24939;strokeColor=#ffffff;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="360" y="200" width="200" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="build" value="Build Docker Image" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=#ffffff;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="380" y="320" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="flow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#ffffff;" edge="1" parent="1" source="jenkins" target="build" />
+        
+        <mxCell id="push" value="Push to Docker Hub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=#ffffff;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="380" y="420" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="flow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#ffffff;" edge="1" parent="1" source="build" target="push" />
+        
+        <mxCell id="k8s" value="&lt;b&gt;Kubernetes Cluster&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#326CE5;fontColor=#326CE5;verticalAlign=top;dashed=1;dashPattern=8 8;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="640" y="180" width="320" height="340" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="dev" value="dev namespace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a1a;strokeColor=#326CE5;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="700" y="230" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="test" value="test namespace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a1a;strokeColor=#326CE5;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="700" y="320" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="prod" value="prod namespace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a1a;strokeColor=#326CE5;fontColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="700" y="410" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="deploy_dev" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#ffffff;" edge="1" parent="1" source="push" target="dev" />
+        <mxCell id="deploy_test" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#ffffff;" edge="1" parent="1" source="push" target="test" />
+        <mxCell id="deploy_prod" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#ffffff;" edge="1" parent="1" source="push" target="prod" />
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
